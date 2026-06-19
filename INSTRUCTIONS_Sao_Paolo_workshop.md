@@ -39,8 +39,8 @@ sky localisation overlaps the night's footprint, and writes:
 - `output/lsst_gw_selection/gw_footprint_overlap.png` — overview plot
 
 Useful flags: `--n-events N`, `--public-only` (restrict to GWTC-cataloged
-events), `--offline` (use the local cache instead of querying
-GraceDB/GWOSC live). Run `lsst-gw-select-events --help` for the full list.
+events since you are most likely not a LIGO member and are thus not allowed to fetch non-public events, which would raise a 401 error), `--offline` (use the local cache instead of querying
+GraceDB/GWOSC live, which is necessaron first run, but slow afterwards). Run `lsst-gw-select-events --help` for the full list.
 
 Pick one event ID (superevent ID, e.g. `S190503bf`, or GWTC name, e.g.
 `GW170817`) from the CSV to carry forward to the next step.
@@ -57,7 +57,7 @@ credible region — this MOC file is what you'll upload to Lasair in step 4.
 Output goes to `output/event_visualisation/` by default.
 
 Useful flags:
-- `--roi {circle,rect,both,moc,none}` — overlay style on the skymap plot
+- `--roi {circle,rect,both,moc,none}` — overlay style on the skymap plot ; the one you need is `moc`
 - `--n-vertices N` — boundary complexity of the MOC region (default 50)
 - `--offline` — use the local cache instead of querying GraceDB/GWOSC
 
@@ -95,7 +95,7 @@ Follow [Lasair tutorial.pdf](Lasair%20tutorial.pdf):
    notifications, or just check matches later via "Run Filter".
 
 This is what actually starts collecting alerts for your event's sky region
-overnight — make sure it's set up before you leave for the day.
+overnight ; make sure it's set up before you leave for the day.
 
 ## Day 2
 

@@ -26,11 +26,19 @@ bottom of the README.
 > event/night is assigned to your group. **Double-check you select the
 > correct night** — `lsst-gw-select-events` defaults to the *current or
 > next* LSST night (Chile time), which may not be the one assigned to you.
+>
+> LSST observes from Chile, so `--date YYYY-MM-DD` is interpreted as a
+> Chile/Santiago calendar date, not a São Paulo one — the two can disagree
+> by a day around local midnight. **If your night is given to you as an MJD
+> value, use `--mjd` instead of `--date`**: it's a single unambiguous
+> number, with no timezone conversion involved on either side.
 
 Run the selector for your assigned night:
 
 ```bash
 lsst-gw-select-events --date YYYY-MM-DD
+# or, if assigned an MJD instead:
+lsst-gw-select-events --mjd 61211.75
 ```
 
 This fetches the LSST schedule for that night, ranks GW superevents whose
@@ -38,9 +46,9 @@ sky localisation overlaps the night's footprint, and writes:
 - `output/lsst_gw_selection/selected_events.csv` — ranked candidate events
 - `output/lsst_gw_selection/gw_footprint_overlap.png` — overview plot
 
-Useful flags: `--n-events N`, `--public-only` (restrict to GWTC-cataloged
-events since you are most likely not a LIGO member and are thus not allowed to fetch non-public events, which would raise a 401 error), `--offline` (use the local cache instead of querying
-GraceDB/GWOSC live, which is necessaron first run, but slow afterwards). Run `lsst-gw-select-events --help` for the full list.
+Useful flags: `--mjd` (preferred over `--date`), `--n-events N`, `--public-only` (restrict to GWTC-cataloged
+events since you are most likely not a LIGO member and are thus not allowed to fetch non-public events, which would raise a 401 error), `--cache` (use the local cache instead of querying
+GraceDB/GWOSC live, which is necessary on first run, but slow afterwards), `-v` (enables debug logging, which can be useful to check querying success). Run `lsst-gw-select-events --help` for the full list.
 
 Pick one event ID (superevent ID, e.g. `S190503bf`, or GWTC name, e.g.
 `GW170817`) from the CSV to carry forward to the next step.
@@ -59,7 +67,7 @@ Output goes to `output/event_visualisation/` by default.
 Useful flags:
 - `--roi {circle,rect,both,moc,none}` — overlay style on the skymap plot ; the one you need is `moc`
 - `--n-vertices N` — boundary complexity of the MOC region (default 50)
-- `--offline` — use the local cache instead of querying GraceDB/GWOSC
+- `--cache` — use the local cache instead of querying GraceDB/GWOSC
 
 For a more hands-on, step-by-step walkthrough of the same operations (load
 an event, plot it, extract the MOC as a `dict`/`mocpy.MOC`, save it), open
@@ -113,3 +121,20 @@ collected overnight:
   (distance, sky position, classification) to judge whether any are
   plausible electromagnetic counterparts versus unrelated transients
   (supernovae, variable stars, asteroids...).
+
+**Got no alerts at all?** `lsst-gw-select-events` builds the footprint from
+the *planned* LSST schedule, not from what was actually observed -- some
+planned pointings get aborted overnight (weather, technical issues), and on
+a bad night that can be the entire schedule. Re-run the selector for your
+night with `--executed-only` to check: it restricts to pointings LSST
+actually executed and tells you upfront (in the log line "N/M scheduled
+pointings were actually executed") whether there was any real coverage at
+all that night, regardless of which region you were watching.
+
+```bash
+lsst-gw-select-events --mjd <your assigned MJD> --executed-only
+```
+
+If this errors with "no pointings were actually executed this night", the
+absence of alerts isn't a bug in your watchmap setup -- LSST simply didn't
+take any data that night.

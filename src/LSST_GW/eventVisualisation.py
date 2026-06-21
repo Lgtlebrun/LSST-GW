@@ -51,15 +51,15 @@ def load_cached_event(event_id: str, events_dir: Path) -> GWEvent:
 
 
 def fetch_event(
-    event_id: str, enrich: bool, offline: bool = False, events_dir: Path = EVENTS_DIRECTORY
+    event_id: str, enrich: bool, cache: bool = False, events_dir: Path = EVENTS_DIRECTORY
 ) -> GWEvent:
     """Resolve a GraceDB superevent ID (e.g. S191117j) or a GWTC name (e.g. GW170817).
 
-    In offline mode, the event is loaded from the local JSON cache written by
+    If `cache` is set, the event is loaded from the local JSON cache written by
     GWEvent.save() instead of querying GraceDB/GWOSC; its skymap is expected
     to already be cached too (see GWUtils.models_gw.has_dl_skymap).
     """
-    if offline:
+    if cache:
         return load_cached_event(event_id, events_dir)
 
     if event_id.upper().startswith("GW"):
@@ -196,10 +196,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--events-dir", type=Path, default=EVENTS_DIRECTORY,
-        help="Directory used to cache GWEvent JSON records (see --offline).",
+        help="Directory used to cache GWEvent JSON records (see --cache).",
     )
     parser.add_argument(
-        "--offline", action="store_true",
+        "--cache", action="store_true",
         help="Do not query GraceDB/GWOSC; look up the event from the local JSON/skymap "
              "cache instead (see --events-dir / --skymap-dir).",
     )
@@ -217,16 +217,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> GWEvent:
     args = build_arg_parser().parse_args(argv)
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(levelname)s %(name)s: %(message)s",
-    )
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    LOGGER.setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
     configure_skymap_directory(args.skymap_dir)
 
     try:
         event = fetch_event(
-            args.event_id, enrich=not args.no_enrich, offline=args.offline, events_dir=args.events_dir
+            args.event_id, enrich=not args.no_enrich, cache=args.cache, events_dir=args.events_dir
         )
     except (ValueError, HTTPError) as e:
         sys.exit(f"error: {e}")

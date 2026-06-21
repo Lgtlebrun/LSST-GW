@@ -75,11 +75,26 @@ lsst-gw-select-events
 ```
 
 Useful options:
-- `--date YYYY-MM-DD` — analyze a specific night (defaults to the next LSST night).
+- `--date YYYY-MM-DD` — analyze a specific night, interpreted as a
+  Chile/Santiago calendar date (where LSST observes from). Defaults to the
+  next LSST night.
+- `--mjd MJD` — analyze a specific night by its start MJD instead, used
+  as-is with no timezone conversion. Prefer this over `--date` if you're
+  coordinating across timezones (e.g. assigned a night by someone elsewhere)
+  to avoid date-boundary ambiguity.
 - `--n-events N` — how many events to select (default 5).
 - `--public-only` — restrict to events already publicly released in the GWTC
   catalog (through O4b), excluding unvetted/non-public superevents.
-- `--offline` — skip GraceDB/GWOSC and use the local JSON/skymap cache instead.
+- `--executed-only` — restrict the footprint to pointings LSST actually
+  executed, excluding planned-but-aborted ones (weather, technical issues).
+  Only meaningful for a night that already happened; use it to check after
+  the fact whether a watched region could plausibly have produced any
+  alerts. The log always reports "N/M scheduled pointings were actually
+  executed" regardless of this flag, even without setting it.
+- `--cache` — skip GraceDB/GWOSC and use the local JSON/skymap cache instead
+  for GW events. This script still always fetches the LSST footprint live
+  from the obsloctap schedule, so an internet connection is required even
+  with `--cache`.
 - `-v` — verbose/debug logging.
 
 Run `lsst-gw-select-events --help` for the full list. Results (a CSV summary
@@ -97,7 +112,7 @@ lsst-gw-visualise-event GW170817
 ```
 
 Useful options:
-- `--offline` — look up the event from the local cache instead of querying GraceDB/GWOSC.
+- `--cache` — look up the event from the local cache instead of querying GraceDB/GWOSC.
 - `--no-plot` — skip generating the skymap figure.
 - `-v` — verbose/debug logging.
 
@@ -118,5 +133,19 @@ default.
 - **A live run seems slow**: both scripts query GraceDB live by default,
   which can be slow if many candidate superevents match (each one needs a
   follow-up request for its classification). Narrow the search with
-  `--far-threshold` (for `lsst-gw-select-events`) or use `--offline` once
+  `--far-threshold` (for `lsst-gw-select-events`) or use `--cache` once
   you've cached the events you need.
+- **`lsst-gw-select-events` hangs or times out fetching the schedule**: this
+  command always fetches the LSST footprint live from the obsloctap service,
+  even with `--cache` (see above), so it needs a working internet
+  connection. On a network that silently drops outbound connections (e.g. a
+  restrictive firewall) the request can take noticeably longer than its
+  30s timeout before failing — if it never returns, check that you can
+  reach `usdf-rsp.slac.stanford.edu`.
+- **No alerts came in overnight for a region you watched**: `lsst-gw-select-events`
+  builds the footprint from the *planned* LSST schedule, not from what was
+  actually observed — some planned pointings get aborted (weather,
+  technical issues), and on a bad night that can be the entire schedule.
+  Re-run the selector for that night with `--executed-only` to check
+  whether there was any real coverage at all, independent of which region
+  you were watching.

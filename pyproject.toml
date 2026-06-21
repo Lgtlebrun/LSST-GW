@@ -42,6 +42,8 @@ dev = [
     "mypy>=1.0",
     "ipython>=8.0",
     "ipdb>=0.13",
+    "ipykernel",
+    "ipython"
 ]
 
 [project.scripts]

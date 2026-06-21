@@ -119,8 +119,13 @@ def fetch_lsst_pointings(
     e.g. to check after the fact whether a given (past) night's data could
     plausibly contain an alert for a region you were watching.
     """
+    # obsloctap's `time` param only accepts an integer number of hours
+    # (422 otherwise); round up so a fractional window (e.g. the "rest of
+    # today" default) doesn't get truncated short of its end.
     response = requests.get(
-        OBSLOCTAP_URL, params={"start": start_mjd, "time": window_hours}, timeout=30
+        OBSLOCTAP_URL,
+        params={"start": start_mjd, "time": int(np.ceil(window_hours))},
+        timeout=30,
     )
     response.raise_for_status()
     pointings = pd.DataFrame(response.json())

@@ -90,8 +90,6 @@ def resolve_night(
         return f"night of {night_date} (MJD {mjd:.2f})", float(mjd), None
     if date_str is not None:
         night_date = date.fromisoformat(date_str)
-        if night_date < default_night_date():
-            raise ValueError(f"requested night {night_date} is in the past")
         start_mjd = night_start_mjd(night_date)
         return f"night of {night_date} (MJD {start_mjd:.2f})", start_mjd, None
 
@@ -107,13 +105,13 @@ def fetch_lsst_pointings(
 ) -> pd.DataFrame:
     """Fetch LSST pointings for the given night from obsloctap.
 
-    obsloctap returns the *planned* schedule, which includes pointings that
-    may later be aborted (weather, technical issues) -- each row's
-    `execution_status` is "Performed" if it was actually taken, "Aborted"
-    otherwise (aborted rows have no real obs_id/timestamps, just placeholder
-    values). For a night that hasn't happened yet, nothing is "Performed"
-    yet, so the full planned schedule is the right thing to use when picking
-    an event to watch in advance -- that's the default here.
+    obsloctap returns the *planned* schedule. Each row's `execution_status`
+    is "Performed" if it was actually taken, "Scheduled" if it's still in
+    the future, or "Aborted" if it was planned but skipped (weather,
+    technical issues -- aborted rows have no real obs_id/timestamps, just
+    placeholder values). For a night that hasn't happened yet, nothing is
+    "Performed" yet, so the full planned schedule is the right thing to use
+    when picking an event to watch in advance -- that's the default here.
 
     Pass executed_only=True to restrict to pointings actually performed,
     e.g. to check after the fact whether a given (past) night's data could
@@ -136,6 +134,11 @@ def fetch_lsst_pointings(
     LOGGER.info(
         "%d/%d scheduled pointings were actually executed (execution_status == 'Performed')",
         n_performed, len(pointings),
+    )
+    n_scheduled = int((pointings["execution_status"] == "Scheduled").sum())
+    LOGGER.info(
+        "%d/%d scheduled pointings are still in the future (execution_status == 'Scheduled')",
+        n_scheduled, len(pointings),
     )
     if executed_only:
         pointings = pointings[pointings["execution_status"] == "Performed"]
@@ -402,7 +405,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description='''Script to select existing GW events which sky localisation are to be covered by LSST.\n
         Procedure :\n
-        1) Parses the LSST footprint scheduled for the indicated date (has to be in future or current night ;
+        1) Parses the LSST footprint scheduled for the indicated date (past, current, or future night ;
         defaults to current or next night, depending on Chile time.)\n
         2) Fetches all available GW events and selects the best localized events (defaults to 5 events) matching basic criteria (non-terrestrial).
         Events are hierarchized first by descending total localisation area, then by coverage in the night footprint.\n
